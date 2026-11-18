@@ -1,0 +1,44 @@
+{
+  "name": "lyricpresence",
+  "version": "1.0.0",
+  "description": "Live Spotify lyrics on your Discord profile / Letras de Spotify en vivo en tu perfil de Discord",
+  "main": "src/main.js",
+  "author": "TU_NOMBRE",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/lrc.test.js",
+    "dist": "electron-builder --win --publish never"
+  },
+  "build": {
+    "appId": "com.tunombre.lyricpresence",
+    "productName": "LyricPresence",
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "LyricPresence-Setup-${version}.exe"
+    },
+    "portable": {
+      "artifactName": "LyricPresence-${version}-portable.exe"
+    }
+  },
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.5.1"
+  },
+  "devDependencies": {
+    "electron": "^45.3.4",
+    "electron-builder": "^26.18.0"
+  }
+}

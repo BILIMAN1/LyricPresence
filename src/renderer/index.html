@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https: data:; font-src 'self'" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LyricPresence</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg" id="bg"></div>
+
+  <header>
+    <div class="brand"><img class="logo" src="icon.png" alt="" /> LyricPresence</div>
+    <button id="btnSettings" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+  </header>
+
+  <!-- ===== Vista principal ===== -->
+  <main id="viewMain">
+    <div class="pills">
+      <span class="pill" id="pillSpotify"><i></i><b>Spotify</b></span>
+      <span class="pill" id="pillDiscord"><i></i><b>Discord</b></span>
+    </div>
+
+    <section class="card now" id="nowCard">
+      <img id="cover" class="cover" alt="" />
+      <div class="meta">
+        <div class="title" id="title"></div>
+        <div class="artist" id="artist"></div>
+      </div>
+    </section>
+
+    <section class="lyrics" id="lyrics">
+      <p class="l prev" id="lPrev"></p>
+      <p class="l cur" id="lCur"></p>
+      <p class="l next" id="lNext"></p>
+    </section>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <button id="btnToggle" class="primary"></button>
+    <button id="btnLogin" class="secondary" hidden></button>
+  </main>
+
+  <!-- ===== Vista de ajustes ===== -->
+  <main id="viewSettings" hidden>
+    <h2 data-i18n="settings"></h2>
+
+    <details class="card help" id="help" open>
+      <summary data-i18n="setupTitle"></summary>
+      <ol>
+        <li data-i18n-html="setup1"></li>
+        <li><span data-i18n="setup2"></span> <code id="redirectUri"></code>
+          <button class="mini" id="btnCopy" data-i18n="copy"></button></li>
+        <li data-i18n="setup3"></li>
+      </ol>
+    </details>
+
+    <label class="field">
+      <span data-i18n="spotifyId"></span>
+      <input id="fSpotifyId" type="text" spellcheck="false" autocomplete="off" />
+    </label>
+
+    <label class="field" id="fieldDiscord">
+      <span data-i18n="discordId"></span>
+      <input id="fDiscordId" type="text" spellcheck="false" autocomplete="off" />
+      <small data-i18n="discordIdHelp"></small>
+    </label>
+
+    <label class="field">
+      <span><span data-i18n="offset"></span>: <b id="offsetVal"></b> ms</span>
+      <input id="fOffset" type="range" min="-2000" max="2000" step="50" />
+      <small data-i18n="offsetHelp"></small>
+    </label>
+
+    <label class="check">
+      <input id="fCover" type="checkbox" />
+      <span data-i18n="useCover"></span>
+    </label>
+
+    <label class="field">
+      <span data-i18n="language"></span>
+      <select id="fLang">
+        <option value="auto">Auto</option>
+        <option value="es">Español</option>
+        <option value="en">English</option>
+      </select>
+    </label>
+
+    <div class="row">
+      <button id="btnSave" class="primary" data-i18n="save"></button>
+      <button id="btnLogout" class="secondary" data-i18n="logout"></button>
+    </div>
+    <button id="btnBack" class="link" data-i18n="back"></button>
+  </main>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
