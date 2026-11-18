@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('api', {
   logout: () => ipcRenderer.invoke('spotify:logout'),
   start: () => ipcRenderer.invoke('engine:start'),
   stop: () => ipcRenderer.invoke('engine:stop'),
+  nudgeOffset: (delta) => ipcRenderer.invoke('offset:nudge', delta),
+  setOffset: (ms) => ipcRenderer.invoke('offset:set', ms),
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
   onState: (cb) => ipcRenderer.on('state', (_e, s) => cb(s)),
 });

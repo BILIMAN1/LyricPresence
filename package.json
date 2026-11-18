@@ -1,17 +1,17 @@
 {
   "name": "lyricpresence",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Live Spotify lyrics on your Discord profile / Letras de Spotify en vivo en tu perfil de Discord",
   "main": "src/main.js",
-  "author": "TU_NOMBRE",
+  "author": "BILIMAN1",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
-    "test": "node test/lrc.test.js",
+    "test": "node test/lrc.test.js && node test/plan.test.js && node test/updater.test.js",
     "dist": "electron-builder --win --publish never"
   },
   "build": {
-    "appId": "com.tunombre.lyricpresence",
+    "appId": "com.biliman1.lyricpresence",
     "productName": "LyricPresence",
     "files": [
       "src/**/*",

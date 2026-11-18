@@ -37,18 +37,19 @@ class Presence {
     this.onState(true);
   }
 
-  async update({ line, title, artist, cover, useCover }) {
-    if (!this.client || !this.ready) return;
+  /** details = fila de arriba, state = fila de abajo (ya vienen decididas por discordPlan). */
+  async update({ details, state, largeText, cover, useCover }) {
+    if (!this.client || !this.ready) throw new Error('DISCORD_NOT_READY');
     const activity = {
       type: LISTENING,
       statusDisplayType: STATUS_DISPLAY_DETAILS,
-      details: pad(line),
-      state: pad(`${title} — ${artist}`),
+      details: pad(details),
+      state: pad(state),
       instance: false,
     };
     if (useCover && cover) {
       activity.largeImageKey = cover;
-      activity.largeImageText = pad(title);
+      activity.largeImageText = pad(largeText);
     }
     await this.client.user?.setActivity(activity);
   }

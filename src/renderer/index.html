@@ -18,6 +18,11 @@
 
   <!-- ===== Vista principal ===== -->
   <main id="viewMain">
+    <div class="update" id="updateBar" hidden>
+      <span id="updateText"></span>
+      <button class="mini" id="btnUpdate"></button>
+    </div>
+
     <div class="pills">
       <span class="pill" id="pillSpotify"><i></i><b>Spotify</b></span>
       <span class="pill" id="pillDiscord"><i></i><b>Discord</b></span>
@@ -32,10 +37,25 @@
     </section>
 
     <section class="lyrics" id="lyrics">
+      <span class="approx-tag" id="approxTag" hidden data-i18n="approxTag"></span>
       <p class="l prev" id="lPrev"></p>
       <p class="l cur" id="lCur"></p>
       <p class="l next" id="lNext"></p>
     </section>
+
+    <div class="nolyrics" id="noLyricsBox" hidden>
+      <span id="noLyricsText"></span>
+      <a href="#" id="noLyricsLink" data-link="https://lrclib.net"></a>
+    </div>
+
+    <div class="sync" id="syncBox">
+      <button class="nudge" id="btnEarlier" aria-label="-100 ms">−100</button>
+      <div class="sync-mid">
+        <div class="sync-label"><span data-i18n="syncLabel"></span>: <b id="syncVal">0</b> ms</div>
+        <small data-i18n="syncHint"></small>
+      </div>
+      <button class="nudge" id="btnLater" aria-label="+100 ms">+100</button>
+    </div>
 
     <div class="banner" id="banner" hidden></div>
 
@@ -70,13 +90,44 @@
 
     <label class="field">
       <span><span data-i18n="offset"></span>: <b id="offsetVal"></b> ms</span>
-      <input id="fOffset" type="range" min="-2000" max="2000" step="50" />
+      <input id="fOffset" type="range" min="-3000" max="3000" step="50" />
       <small data-i18n="offsetHelp"></small>
+    </label>
+
+    <label class="field">
+      <span data-i18n="discordMode"></span>
+      <select id="fMode">
+        <option value="pair" data-i18n="modePair"></option>
+        <option value="song" data-i18n="modeSong"></option>
+      </select>
+      <small data-i18n="discordModeHelp"></small>
     </label>
 
     <label class="check">
       <input id="fCover" type="checkbox" />
       <span data-i18n="useCover"></span>
+    </label>
+
+    <label class="check col">
+      <span class="row-inline"><input id="fApprox" type="checkbox" /><span data-i18n="useApprox"></span></span>
+      <small data-i18n="useApproxHelp"></small>
+    </label>
+
+    <h3 data-i18n="bgTitle"></h3>
+
+    <label class="check col" id="fieldAutostart">
+      <span class="row-inline"><input id="fWinStart" type="checkbox" /><span data-i18n="startWithWindows"></span></span>
+      <small id="winStartHelp"></small>
+    </label>
+
+    <label class="check">
+      <input id="fTray" type="checkbox" />
+      <span data-i18n="minimizeToTray"></span>
+    </label>
+
+    <label class="check">
+      <input id="fUpdates" type="checkbox" />
+      <span data-i18n="checkUpdates"></span>
     </label>
 
     <label class="field">
@@ -93,6 +144,7 @@
       <button id="btnLogout" class="secondary" data-i18n="logout"></button>
     </div>
     <button id="btnBack" class="link" data-i18n="back"></button>
+    <p class="version" id="version"></p>
   </main>
 
   <script src="i18n.js"></script>

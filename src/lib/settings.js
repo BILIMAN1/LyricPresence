@@ -3,29 +3,35 @@ const fs = require('fs');
 const path = require('path');
 const { app, safeStorage } = require('electron');
 
-// ID de tu aplicación de Discord (es público, NO es un secreto). Créala en
-// https://discord.com/developers/applications con el nombre que quieras que se vea
-// ("Escuchando <nombre>") y pega aquí su Application ID para que los usuarios no tengan que hacerlo.
-const DEFAULT_DISCORD_APP_ID = '';
+const { DEFAULT_DISCORD_APP_ID } = require('../config');
 
 const DEFAULTS = {
   spotifyClientId: '',
   discordAppId: DEFAULT_DISCORD_APP_ID,
-  offsetMs: 300,
+  offsetMs: 300, // + adelanta la letra, - la retrasa
   useCover: true,
   language: 'auto',
-  autoStart: true,
+  autoStart: true, // empezar a sincronizar al abrir la app
+  discordMode: 'pair', // 'pair' = línea actual + siguiente | 'song' = línea + nombre de la canción
+  useApproxLyrics: false, // si no hay letra sincronizada, usar una repartida de forma pareja
+  startWithWindows: false,
+  minimizeToTray: true,
+  checkUpdates: true,
   tokensEnc: null,
 };
 
 const file = () => path.join(app.getPath('userData'), 'settings.json');
 
 function load() {
+  let saved = {};
   try {
-    return { ...DEFAULTS, ...JSON.parse(fs.readFileSync(file(), 'utf8')) };
+    saved = JSON.parse(fs.readFileSync(file(), 'utf8'));
   } catch {
-    return { ...DEFAULTS };
+    /* primera vez o archivo dañado: usamos los valores por defecto */
   }
+  const s = { ...DEFAULTS, ...saved };
+  if (!s.discordAppId) s.discordAppId = DEFAULT_DISCORD_APP_ID;
+  return s;
 }
 
 function save(settings) {

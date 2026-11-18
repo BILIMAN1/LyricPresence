@@ -16,12 +16,6 @@
       // Los textos vienen de i18n.js (no de usuarios): contenido estático y de confianza.
       el.innerHTML = T[el.dataset.i18nHtml];
     });
-    document.querySelectorAll('[data-link]').forEach((a) =>
-      a.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.api.openExternal(a.dataset.link);
-      })
-    );
     render();
   }
 
@@ -46,6 +40,7 @@
 
     const ly = state.lyric;
     lyrics.classList.toggle('empty', !ly);
+    $('approxTag').hidden = !(ly ? ly.approx : tr && tr.lyricsKind === 'approx');
     if (ly) {
       $('lPrev').textContent = ly.prev;
       $('lCur').textContent = ly.current;
@@ -59,9 +54,31 @@
         ? '♪'
         : !tr.isPlaying
         ? T.paused
+        : tr.loading
+        ? T.searching
         : tr.hasLyrics
         ? '♪'
         : T.noLyrics;
+    }
+
+    // Canción sin letra: explicar qué se puede hacer
+    const noLyrics = !!(state.running && tr && tr.isPlaying && !tr.loading && !tr.hasLyrics);
+    $('noLyricsBox').hidden = !noLyrics;
+    if (noLyrics) {
+      $('noLyricsText').textContent = settings && settings.useApproxLyrics ? T.noLyricsTip : T.noLyricsTipApprox;
+      $('noLyricsLink').textContent = T.contribute;
+    }
+
+    // Calibración rápida
+    const off = typeof state.offsetMs === 'number' ? state.offsetMs : settings ? settings.offsetMs : 0;
+    $('syncVal').textContent = (off > 0 ? '+' : '') + off;
+
+    // Aviso de versión nueva
+    const up = state.update;
+    $('updateBar').hidden = !up;
+    if (up) {
+      $('updateText').textContent = T.updateAvail(up.version);
+      $('btnUpdate').textContent = T.download;
     }
 
     const banner = $('banner');
@@ -91,9 +108,19 @@
   function fillSettings() {
     $('fSpotifyId').value = settings.spotifyClientId;
     $('fDiscordId').value = settings.discordAppId;
-    $('fOffset').value = settings.offsetMs;
-    $('offsetVal').textContent = settings.offsetMs;
+    const off = state && typeof state.offsetMs === 'number' ? state.offsetMs : settings.offsetMs;
+    $('fOffset').value = off;
+    $('offsetVal').textContent = off;
+    $('fMode').value = settings.discordMode || 'pair';
     $('fCover').checked = settings.useCover;
+    $('fApprox').checked = !!settings.useApproxLyrics;
+    $('fWinStart').checked = !!settings.startWithWindows && settings.canAutostart;
+    $('fWinStart').disabled = !settings.canAutostart;
+    $('fieldAutostart').classList.toggle('disabled', !settings.canAutostart);
+    $('winStartHelp').textContent = settings.canAutostart ? T.startWithWindowsHelp : T.startWithWindowsOff;
+    $('fTray').checked = !!settings.minimizeToTray;
+    $('fUpdates').checked = settings.checkUpdates !== false;
+    $('version').textContent = `${T.version} ${settings.appVersion || ''}`;
     $('fLang').value = settings.language;
     $('redirectUri').textContent = settings.redirectUri;
     $('help').open = !settings.spotifyClientId;
@@ -104,7 +131,12 @@
       spotifyClientId: $('fSpotifyId').value,
       discordAppId: $('fDiscordId').value,
       offsetMs: Number($('fOffset').value),
+      discordMode: $('fMode').value,
       useCover: $('fCover').checked,
+      useApproxLyrics: $('fApprox').checked,
+      startWithWindows: $('fWinStart').checked,
+      minimizeToTray: $('fTray').checked,
+      checkUpdates: $('fUpdates').checked,
       language: $('fLang').value,
     });
     T = window.I18N[pickLang(settings)];
@@ -141,6 +173,16 @@
       }
     };
     $('fOffset').oninput = (e) => ($('offsetVal').textContent = e.target.value);
+    // Un solo listener para todos los enlaces (los textos se reescriben al cambiar de idioma)
+    document.addEventListener('click', (e) => {
+      const a = e.target.closest && e.target.closest('[data-link]');
+      if (!a) return;
+      e.preventDefault();
+      window.api.openExternal(a.dataset.link);
+    });
+    $('btnEarlier').onclick = () => window.api.nudgeOffset(-100);
+    $('btnLater').onclick = () => window.api.nudgeOffset(100);
+    $('btnUpdate').onclick = () => state.update && window.api.openExternal(state.update.url);
     $('btnCopy').onclick = async () => {
       await navigator.clipboard.writeText(settings.redirectUri);
       const b = $('btnCopy');

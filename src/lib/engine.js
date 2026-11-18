@@ -2,10 +2,10 @@
 const { EventEmitter } = require('events');
 const { fetchLyrics } = require('./lyrics');
 const { findLineIndex } = require('./lrc');
+const { Planner, LEAD_MS } = require('./discordPlan');
 
 const POLL_MS = 4000; // consulta a Spotify
-const TICK_MS = 250; // refresco de la UI
-const MIN_DISCORD_GAP_MS = 4000; // Discord limita ~5 actualizaciones / 20 s
+const TICK_MS = 200; // refresco de la UI y del planificador de Discord
 
 class Engine extends EventEmitter {
   constructor({ spotify, presence, getSettings }) {
@@ -21,11 +21,12 @@ class Engine extends EventEmitter {
     this.track = null; // último playback de Spotify
     this.trackId = null;
     this.lines = [];
+    this.lyricsKind = null; // 'synced' | 'approx' | null
+    this.lyricsLoading = false;
+    this.planner = new Planner();
     this.baseProgress = 0;
     this.baseAt = 0;
     this.lastIdx = null;
-    this.lastSentAt = 0;
-    this.lastSentIdx = undefined;
     this.pollTimer = null;
     this.tickTimer = null;
     this.cleared = true;
@@ -96,6 +97,7 @@ class Engine extends EventEmitter {
       this.track = null;
       this.trackId = null;
       this.lines = [];
+      this.lyricsKind = null;
       this._emit({ track: null, lyric: null });
       await this._clearDiscord();
       return;
@@ -106,31 +108,41 @@ class Engine extends EventEmitter {
     if (pb.id !== this.trackId) {
       this.trackId = pb.id;
       this.lines = [];
+      this.lyricsKind = null;
+      this.lyricsLoading = true;
       this.lastIdx = null;
-      this.lastSentIdx = undefined;
+      this.planner.reset();
       this.track = pb;
-      this._emit({ track: this._publicTrack(pb, false), lyric: null });
-      const lines = await fetchLyrics(pb);
+      this._emit({ track: this._publicTrack(pb), lyric: null });
+      const { allowPlain } = this._lyricOpts();
+      const res = await fetchLyrics(pb, { allowPlain });
       if (this.trackId === pb.id) {
-        this.lines = lines;
-        this._emit({ track: this._publicTrack(pb, lines.length > 0) });
+        this.lines = res.lines;
+        this.lyricsKind = res.kind;
+        this.lyricsLoading = false;
+        this.lastIdx = null;
+        this._emit({ track: this._publicTrack(pb) });
       }
     }
     this.track = pb;
-    if (!pb.isPlaying) {
-      this._emit({ track: this._publicTrack(pb, this.lines.length > 0) });
-      await this._clearDiscord();
-    }
+    this._emit({ track: this._publicTrack(pb) });
+    if (!pb.isPlaying) await this._clearDiscord();
   }
 
-  _publicTrack(pb, hasLyrics) {
+  _lyricOpts() {
+    return { allowPlain: !!this.getSettings().useApproxLyrics };
+  }
+
+  _publicTrack(pb) {
     return {
       title: pb.title,
       artist: pb.artist,
       album: pb.album,
       cover: pb.cover,
       isPlaying: pb.isPlaying,
-      hasLyrics,
+      hasLyrics: this.lines.length > 0,
+      lyricsKind: this.lyricsKind,
+      loading: this.lyricsLoading,
       durationMs: pb.durationMs,
     };
   }
@@ -138,7 +150,7 @@ class Engine extends EventEmitter {
   async _clearDiscord() {
     if (this.cleared) return;
     this.cleared = true;
-    this.lastSentIdx = undefined;
+    this.planner.reset();
     await this.presence.clear();
   }
 
@@ -147,38 +159,50 @@ class Engine extends EventEmitter {
     if (!this.running || !tr || !tr.isPlaying) return;
     const s = this.getSettings();
     const pos = this.baseProgress + (Date.now() - this.baseAt) + (s.offsetMs || 0);
-    const idx = this.lines.length ? findLineIndex(this.lines, pos) : -2;
+    const hasLines = this.lines.length > 0;
+    const idx = hasLines ? findLineIndex(this.lines, pos) : -2;
 
     if (idx !== this.lastIdx) {
       this.lastIdx = idx;
       const L = this.lines;
       this._emit({
-        lyric: this.lines.length
+        lyric: hasLines
           ? {
               prev: idx > 0 ? L[idx - 1].text : '',
               current: idx >= 0 ? L[idx].text || '♪' : '♪',
               next: L[idx + 1] ? L[idx + 1].text : '',
+              approx: this.lyricsKind === 'approx',
             }
           : null,
       });
     }
 
+    // Discord: esperamos a saber si hay letra y a que el cliente de Discord esté conectado.
+    if (this.lyricsLoading || !this.presence.ready) return;
     const now = Date.now();
-    if (idx !== this.lastSentIdx && now - this.lastSentAt >= MIN_DISCORD_GAP_MS) {
-      const line = this.lines.length ? (idx >= 0 ? this.lines[idx].text : '') : null;
-      this.lastSentIdx = idx;
-      this.lastSentAt = now;
-      this.cleared = false;
-      this.presence
-        .update({
-          line: line === null ? '♪' : line,
-          title: tr.title,
-          artist: tr.artist,
-          cover: tr.cover,
-          useCover: s.useCover,
-        })
-        .catch((e) => this._emit({ error: 'DISCORD_ERROR', detail: e.message }));
-    }
+    const idxD = hasLines ? findLineIndex(this.lines, pos + LEAD_MS) : -2;
+    const act = this.planner.next({
+      now,
+      mode: s.discordMode === 'song' ? 'song' : 'pair',
+      lines: this.lines,
+      idx: idxD,
+      track: tr,
+    });
+    if (!act) return;
+    this.cleared = false;
+    this.presence
+      .update({ ...act, cover: tr.cover, useCover: s.useCover })
+      .then(() => {
+        if (this._discordErr) {
+          this._discordErr = false;
+          this._emit({ error: null });
+        }
+      })
+      .catch((e) => {
+        this._discordErr = true;
+        this.planner.failed(Date.now());
+        this._emit({ error: 'DISCORD_ERROR', detail: e.message });
+      });
   }
 }
 
